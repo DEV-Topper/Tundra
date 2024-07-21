@@ -8,3 +8,8 @@ export interface iInput {
 export interface iFirst {
   action: (formData: FormData) => void;
 }
+
+export interface Option {
+  label: string;
+  value: string;
+}

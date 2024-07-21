@@ -1,20 +1,24 @@
+"use client";
 import { iInput } from "@/interfaces";
+import { useSelector } from "react-redux";
 
 export const inputs: iInput[] = [
   {
     name: "firstName",
     placeholder: "First Name*",
     type: "text",
-    value: JSON.parse(localStorage.getItem("firstInfo")!)?.firstName!,
   },
   {
     name: "lastName",
     placeholder: "Last Name*",
     type: "text",
-    value: JSON.parse(localStorage.getItem("firstInfo")!)?.lastName!,
+  },
+  {
+    name: "email",
+    placeholder: "Email*",
+    type: "email",
   },
 ];
-
 export const POPULAR_COUNTRIES: string[] = [
   "United States",
   "United Kingdom",

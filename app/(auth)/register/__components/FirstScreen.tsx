@@ -2,8 +2,10 @@
 import { iFirst, iInput } from "@/interfaces";
 import { COUNTRIES } from "@/public/utils/constant";
 import { POPULAR_COUNTRIES, inputs } from "@/public/utils/data";
+import { addInputValue } from "@/public/utils/reducer";
 import Image from "next/image";
 import React, { FC, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Select from "react-select";
 
 interface FirstScreenProps {
@@ -11,6 +13,7 @@ interface FirstScreenProps {
 }
 
 const FirstScreen: FC<FirstScreenProps> = ({ setStage }) => {
+  const dispatch = useDispatch();
   const [countries, setCountries] = useState([
     {
       value: "Nigeria",
@@ -19,7 +22,9 @@ const FirstScreen: FC<FirstScreenProps> = ({ setStage }) => {
         "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Flag_of_Nigeria.svg/800px-Flag_of_Nigeria.svg.png",
     },
   ]);
+  const [state, setState] = useState<boolean>(false);
   const [selectedCountry, setSelectedCountry] = useState<any>(null);
+  const inputData = useSelector((state: any) => state?.inputValue);
 
   useEffect(() => {
     fetch(COUNTRIES!)
@@ -38,56 +43,71 @@ const FirstScreen: FC<FirstScreenProps> = ({ setStage }) => {
           }));
 
         setCountries(country);
-
-        return countries;
+        setSelectedCountry(country.find((c: any) => c.value === "Nigeria"));
       });
   }, []);
 
-  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    dispatch(addInputValue({ ...inputData, [name]: value }));
+  };
 
-    const matchedCountry = countries.find((country: any) =>
-      inputValue.startsWith(country.label)
-    );
-    if (matchedCountry) {
-      setSelectedCountry(matchedCountry);
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (name === "number") {
+      const matchedCountry = countries.find((country: any) =>
+        value.startsWith(country.label)
+      );
+      if (matchedCountry) {
+        setSelectedCountry(matchedCountry);
+      }
     }
+    handleInputChange(e);
   };
 
   const handleForm = (formData: FormData) => {
+    setState(true);
+
     const firstName = formData.get("firstName");
     const lastName = formData.get("lastName");
     const number = formData.get("number");
     const prefix = formData.get("prefix");
+    const email = formData.get("email");
 
-    const data = { firstName, lastName, number, prefix };
+    dispatch(
+      addInputValue({ firstName, lastName, email, number, country: prefix })
+    );
 
-    localStorage.setItem("firstInfo", JSON.stringify(data));
-
-    const timeout: NodeJS.Timeout = setTimeout(() => {
-      setStage(data && 2);
-
-      clearTimeout(timeout);
+    setTimeout(() => {
+      setStage(2);
+      setState(false);
     }, 1000);
   };
 
   return (
-    <form action={handleForm} className="space-y-3">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleForm(new FormData(e.currentTarget));
+      }}
+      className="space-y-3 flex flex-col items-center"
+    >
       {inputs.map((el: iInput, i: number) => (
         <input
           key={i}
           type={el.type}
-          required={true}
+          required
           placeholder={el.placeholder}
           name={el?.name}
-          value={el.value}
-          className="duration-300 w-[90%] md:w-[400px] h-[40px] rounded-md border  border-gray-400 outline-gray-500 pl-3"
+          value={inputData[el?.name!] || ""}
+          className="duration-300 w-[90%] md:w-[400px] h-[40px] rounded-md border border-gray-400 outline-gray-500 pl-3"
+          onChange={handleInputChange}
         />
       ))}
 
-      <div className="w-full md:w-[400px] flex items-center gap-2">
+      <div className="w-[90%] md:w-[400px] grid grid-cols-10 gap-2">
         <Select
-          required={true}
+          required
           options={countries}
           formatOptionLabel={(country: any) => (
             <div className="flex items-center gap-2 text-[15px]">
@@ -103,28 +123,28 @@ const FirstScreen: FC<FirstScreenProps> = ({ setStage }) => {
               <span>{country.label}</span>
             </div>
           )}
-          className="w-[150px]"
+          className="col-span-3"
           name="prefix"
           value={selectedCountry}
           onChange={(value) => setSelectedCountry(value)}
-          defaultValue={countries.find((c) => c.value === "Nigeria")}
         />
 
         <input
           type="text"
-          required={true}
+          required
           placeholder="Phone Number *"
           name="number"
-          value={JSON.parse(localStorage.getItem("firstInfo")!)?.number!}
-          className="w-[90%] duration-300 h-[40px] rounded-md border border-gray-400 outline-gray-500 pl-3"
+          value={inputData?.number || ""}
+          className="col-span-7 duration-300 h-[40px] rounded-md border border-gray-400 outline-gray-500 pl-3"
           onChange={handlePhoneNumberChange}
         />
       </div>
       <button
         type="submit"
-        className="w-full bg-gray-700 rounded-md duration-300 hover:bg-gray-400 text-white text-[20px] font-semibold py-2 cursor-pointer"
+        className={`w-full bg-gray-700 rounded-md duration-300 flex items-center justify-center hover:bg-gray-400 text-white text-[20px] font-semibold py-2 cursor-pointer `}
       >
-        Continue
+        {state ? <div className="loader" /> : ""}
+        {!state && "Continue"}
       </button>
     </form>
   );
